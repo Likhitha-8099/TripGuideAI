@@ -1,0 +1,118 @@
+Folder PATH listing for volume Windows
+Volume serial number is 7C67-6D4D
+C:.
+|   .classpath
+|   .gitattributes
+|   .gitignore
+|   .project
+|   HELP.md
+|   mvnw
+|   mvnw.cmd
+|   pom.xml
+|   project-structure.txt
+|   
++---.mvn
+|   \---wrapper
+|           maven-wrapper.properties
+|           
++---.settings
+|       org.eclipse.core.resources.prefs
+|       org.eclipse.jdt.apt.core.prefs
+|       org.eclipse.jdt.core.prefs
+|       org.eclipse.m2e.core.prefs
+|       org.springframework.ide.eclipse.prefs
+|       
++---src
+|   +---main
+|   |   +---java
+|   |   |   \---com
+|   |   |       \---tripmind
+|   |   |           \---backend
+|   |   |               |   TripmindBackendApplication.java
+|   |   |               |   
+|   |   |               +---controller
+|   |   |               |       AiController.java
+|   |   |               |       TripController.java
+|   |   |               |       TripMindAIController.java
+|   |   |               |       
+|   |   |               +---dto
+|   |   |               |       AiRequest.java
+|   |   |               |       ApiResponse.java
+|   |   |               |       TripRequest.java
+|   |   |               |       TripResponse.java
+|   |   |               |       
+|   |   |               +---entity
+|   |   |               |       Trip.java
+|   |   |               |       
+|   |   |               +---exception
+|   |   |               |       ValidationExceptionHandler.java
+|   |   |               |       
+|   |   |               +---repository
+|   |   |               |       TripRepository.java
+|   |   |               |       
+|   |   |               \---service
+|   |   |                       AiService.java
+|   |   |                       TripMindAssistant.java
+|   |   |                       TripService.java
+|   |   |                       
+|   |   \---resources
+|   |       |   application.properties
+|   |       |   
+|   |       +---static
+|   |       \---templates
+|   \---test
+|       \---java
+|           \---com
+|               \---tripmind
+|                   \---backend
+|                           TripmindBackendApplicationTests.java
+|                           
+\---target
+    +---classes
+    |   |   application.properties
+    |   |   
+    |   +---com
+    |   |   \---tripmind
+    |   |       \---backend
+    |   |           |   TripmindBackendApplication.class
+    |   |           |   
+    |   |           +---controller
+    |   |           |       AiController.class
+    |   |           |       TripController.class
+    |   |           |       TripMindAIController.class
+    |   |           |       
+    |   |           +---dto
+    |   |           |       AiRequest.class
+    |   |           |       ApiResponse.class
+    |   |           |       TripRequest.class
+    |   |           |       TripResponse.class
+    |   |           |       
+    |   |           +---entity
+    |   |           |       Trip.class
+    |   |           |       
+    |   |           +---exception
+    |   |           |       ValidationExceptionHandler.class
+    |   |           |       
+    |   |           +---repository
+    |   |           |       TripRepository.class
+    |   |           |       
+    |   |           \---service
+    |   |                   AiService.class
+    |   |                   TripMindAssistant.class
+    |   |                   TripService.class
+    |   |                   
+    |   \---META-INF
+    |       |   MANIFEST.MF
+    |       |   
+    |       \---maven
+    |           \---com.tripmind
+    |               \---tripmind-backend
+    |                       pom.properties
+    |                       pom.xml
+    |                       
+    \---test-classes
+        \---com
+            \---tripmind
+                \---backend
+                        TripmindBackendApplicationTests.class
+                        
