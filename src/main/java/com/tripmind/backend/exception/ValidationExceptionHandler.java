@@ -1,8 +1,11 @@
+
 package com.tripmind.backend.exception;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,58 +18,77 @@ import com.tripmind.backend.dto.ApiResponse;
 @RestControllerAdvice
 public class ValidationExceptionHandler {
 
-	@ExceptionHandler(MethodArgumentNotValidException.class)
-	public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException exceptiom) {
-		Map<String, String> errors = new HashMap<>();
+    private static final Logger logger =
+            LoggerFactory.getLogger(ValidationExceptionHandler.class);
 
-		exceptiom.getBindingResult().getFieldErrors()
-				.forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+    // 1. Handle request validation errors
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationErrors(
+            MethodArgumentNotValidException exception) {
 
-		Map<String, Object> response = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
 
-		response.put("status", 400);
-		response.put("message", "Validation failed");
-		response.put("errors", errors);
+        exception.getBindingResult()
+                .getFieldErrors()
+                .forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage()));
 
-		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-	}
+        Map<String, Object> response = new HashMap<>();
 
-	@ExceptionHandler(Exception.class)
-	public ResponseEntity<Map<String, Object>> handleGeneralException(Exception exception) {
+        response.put("status", 400);
+        response.put("message", "Validation failed");
+        response.put("errors", errors);
 
-		Map<String, Object> response = new HashMap<>();
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 
-		response.put("status", 500);
-		response.put("message", "Something went wrong. Please try again later.");
+    // 2. Handle response status exceptions
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResponseStatusException(
+            ResponseStatusException exception) {
 
-		return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-	}
+        ApiResponse<Void> response = new ApiResponse<>(
+                false,
+                exception.getReason(),
+                null
+        );
 
-	@ExceptionHandler(ResponseStatusException.class)
-	public ResponseEntity<ApiResponse<Void>> handleResponseStatusException(ResponseStatusException exception) {
+        return new ResponseEntity<>(response, exception.getStatusCode());
+    }
 
-		ApiResponse<Void> response = new ApiResponse<>(false, exception.getReason(), null);
+    // 3. Handle invalid arguments
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(
+            IllegalArgumentException exception) {
 
-		return new ResponseEntity<>(response, exception.getStatusCode());
-	}
-	
+        ApiResponse<Void> response = new ApiResponse<>(
+                false,
+                exception.getMessage(),
+                null
+        );
 
-@ExceptionHandler(IllegalArgumentException.class)
-public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(
-        IllegalArgumentException exception) {
+        return new ResponseEntity<>(
+                response,
+                HttpStatus.UNPROCESSABLE_ENTITY
+        );
+    }
 
-    ApiResponse<Void> response = new ApiResponse<>(
-            false,
-            exception.getMessage(),
-            null
-    );
+    // 4. Handle unexpected exceptions
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGeneralException(
+            Exception exception) {
 
-    return new ResponseEntity<>(
-            response,
-            HttpStatus.UNPROCESSABLE_ENTITY
-    );
-}
+        // Log the actual exception and stack trace
+        logger.error("Unexpected application error occurred", exception);
 
-	
+        Map<String, Object> response = new HashMap<>();
 
+        response.put("status", 500);
+        response.put("message", "Something went wrong. Please try again later.");
+
+        return new ResponseEntity<>(
+                response,
+                HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
 }

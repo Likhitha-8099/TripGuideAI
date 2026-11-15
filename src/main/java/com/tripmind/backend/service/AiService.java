@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import com.tripmind.backend.dto.AiItineraryResponse;
+import com.tripmind.backend.dto.DayItinerary;
 import com.tripmind.backend.dto.TripRequest;
 
 import dev.langchain4j.data.message.SystemMessage;
@@ -36,25 +37,28 @@ public class AiService {
             TripRequest tripRequest) {
 
         // 1. Prepare AI prompt
+
         PromptTemplate template = PromptTemplate.from("""
                 You are TripMind AI, an expert travel planner.
 
-                Generate a practical travel itinerary using:
+                Generate a practical, realistic and personalized travel itinerary
+                using the following details:
 
                 Destination: {{destination}}
                 Duration: {{numberOfDays}} days
-                Budget: {{budget}} rupees
+                Total Budget: {{budget}} rupees
                 Travel Style: {{travelStyle}}
 
                 Return ONLY valid JSON.
-                Do not use Markdown code fences.
+                Do not include Markdown code fences.
+                Do not include explanations outside the JSON.
 
                 Follow this exact JSON structure:
 
                 {
-                  "destination": "Destination name",
-                  "numberOfDays": 3,
-                  "budget": 15000,
+                  "destination": "{{destination}}",
+                  "numberOfDays": {{numberOfDays}},
+                  "budget": {{budget}},
                   "expenses": {
                     "accommodation": 3000,
                     "food": 1500,
@@ -64,19 +68,45 @@ public class AiService {
                   },
                   "estimatedCost": 11500,
                   "remainingBudget": 3500,
-                  "itinerary": "Day-wise detailed travel itinerary"
+                  "itinerary": [
+                    {
+                      "day": 1,
+                      "morning": "Morning activity details",
+                      "afternoon": "Afternoon activity details",
+                      "evening": "Evening activity details"
+                    },
+                    {
+                      "day": 2,
+                      "morning": "Morning activity details",
+                      "afternoon": "Afternoon activity details",
+                      "evening": "Evening activity details"
+                    }
+                  ]
                 }
 
-                Rules:
-                1. Generate exactly the requested number of days.
-                2. Include all five expense categories.
-                3. Keep estimated expenses within the given budget.
-                4. Use numeric values for all expense amounts.
-                5. Provide day-wise activities and approximate costs.
-                6. Do not include additional text outside the JSON.
+                IMPORTANT RULES:
+
+                1. Generate exactly {{numberOfDays}} day objects in the itinerary array.
+                2. Day numbering must start from 1 and continue sequentially.
+                3. Every day must contain morning, afternoon and evening activities.
+                4. Activities must be relevant to the requested destination.
+                5. Consider the user's travel style when selecting activities.
+                6. Avoid repeating the same activities across different days.
+                7. Include all five expense categories.
+                8. All expense values must be numeric and non-negative.
+                9. estimatedCost must equal the sum of all five expense categories.
+                10. estimatedCost must not exceed the user's total budget.
+                11. remainingBudget must equal budget minus estimatedCost.
+                12. Use realistic approximate costs in Indian Rupees.
+                13. Do not claim unverified opening hours, prices or availability
+                    as confirmed facts.
+                14. The itinerary must be a JSON array, NOT a string.
+                15. Do not add extra JSON properties.
+                16. Return only valid JSON.
                 """);
 
         // 2. Prepare prompt variables
+
         Map<String, Object> variables = new HashMap<>();
 
         variables.put("destination", tripRequest.getDestination());
@@ -87,6 +117,7 @@ public class AiService {
         String finalPrompt = template.apply(variables).text();
 
         // 3. Call Groq AI
+
         ChatResponse chatResponse;
 
         try {
@@ -107,6 +138,7 @@ public class AiService {
         }
 
         // 4. Validate AI response
+
         if (chatResponse == null || chatResponse.aiMessage() == null) {
 
             throw new IllegalStateException(
@@ -124,6 +156,7 @@ public class AiService {
         }
 
         // 5. Convert JSON into Java DTO
+
         AiItineraryResponse aiResponse;
 
         try {
@@ -142,6 +175,7 @@ public class AiService {
         }
 
         // 6. Validate parsed response
+
         if (aiResponse == null) {
 
             throw new IllegalStateException(
@@ -157,11 +191,54 @@ public class AiService {
         }
 
         if (aiResponse.getItinerary() == null
-                || aiResponse.getItinerary().isBlank()) {
+                || aiResponse.getItinerary().isEmpty()) {
 
             throw new IllegalStateException(
                     "AI response does not contain itinerary details"
             );
+        }
+
+        // 7. Validate requested number of days
+
+        if (aiResponse.getItinerary().size()
+                != tripRequest.getNumberOfDays()) {
+
+            throw new IllegalStateException(
+                    "AI generated an incorrect number of itinerary days"
+            );
+        }
+
+        // 8. Validate each day's activities
+
+        for (int i = 0; i < aiResponse.getItinerary().size(); i++) {
+
+            DayItinerary day = aiResponse.getItinerary().get(i);
+
+            if (day == null) {
+
+                throw new IllegalStateException(
+                        "AI generated an invalid day entry"
+                );
+            }
+
+            if (day.getDay() != i + 1) {
+
+                throw new IllegalStateException(
+                        "AI generated incorrect day numbering"
+                );
+            }
+
+            if (day.getMorning() == null
+                    || day.getMorning().isBlank()
+                    || day.getAfternoon() == null
+                    || day.getAfternoon().isBlank()
+                    || day.getEvening() == null
+                    || day.getEvening().isBlank()) {
+
+                throw new IllegalStateException(
+                        "AI response contains missing daily activities"
+                );
+            }
         }
 
         return aiResponse;

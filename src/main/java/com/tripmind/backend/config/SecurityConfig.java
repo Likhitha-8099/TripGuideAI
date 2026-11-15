@@ -33,7 +33,6 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
-            // Return 401 when authentication is missing
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(
                     new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
@@ -41,10 +40,17 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
+
                 .requestMatchers(
-                		 "/api/auth/register",
-                		    "/api/auth/login"
+                    "/api/auth/register",
+                    "/api/auth/login"
                 ).permitAll()
+
+                .requestMatchers(
+                    "/api/locations/**",
+                    "/api/routes/**"
+                ).permitAll()
+
                 .anyRequest().authenticated()
             )
 

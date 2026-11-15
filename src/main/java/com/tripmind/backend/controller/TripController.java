@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tripmind.backend.dto.MyTripResponse;
 import com.tripmind.backend.dto.TripRequest;
+import com.tripmind.backend.dto.TripResponse;
 import com.tripmind.backend.service.TripService;
 
 import jakarta.validation.Valid;
@@ -34,13 +35,13 @@ public class TripController {
 	}
 
 	@PostMapping("/api/trips/generate")
-	public ResponseEntity<String> generate(@Valid @RequestBody TripRequest tripRequest, Authentication authentication) {
+	public ResponseEntity<TripResponse> generate(@Valid @RequestBody TripRequest tripRequest, Authentication authentication) {
 
 		// Get logged-in user's ID from JWT authentication
 		Long userId = (Long) authentication.getPrincipal();
 
 		// Generate trip for this particular user
-		String response = tripService.generate(tripRequest, userId);
+		TripResponse response = tripService.generate(tripRequest, userId);
 
 		return ResponseEntity.ok(response);
 	}

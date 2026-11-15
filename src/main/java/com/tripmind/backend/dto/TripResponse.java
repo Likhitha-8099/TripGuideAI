@@ -1,43 +1,45 @@
+
 package com.tripmind.backend.dto;
 
 public class TripResponse {
-	private String destination;
-    private int numberOfDays;
-    private double estimatedCost;
-    private double remainingBudget;
-    private String itinerary;
-	public String getDestination() {
-		return destination;
-	}
-	public void setDestination(String destination) {
-		this.destination = destination;
-	}
-	public int getNumberOfDays() {
-		return numberOfDays;
-	}
-	public TripResponse() {
-		super();
-	}
-	public void setNumberOfDays(int numberOfDays) {
-		this.numberOfDays = numberOfDays;
-	}
+
+    private Long tripId;
+
+    private AiItineraryResponse itinerary;
+
+    public TripResponse() {
+    }
+
+    public TripResponse(
+            Long tripId,
+            AiItineraryResponse itinerary) {
+        this.tripId = tripId;
+        this.itinerary = itinerary;
+    }
+
+    public Long getTripId() {
+        return tripId;
+    }
+
+    public void setTripId(Long tripId) {
+        this.tripId = tripId;
+    }
+
+    public AiItineraryResponse getItinerary() {
+        return itinerary;
+    }
+
+    public void setItinerary(AiItineraryResponse itinerary) {
+        this.itinerary = itinerary;
+    }
+
 	public double getEstimatedCost() {
-		return estimatedCost;
-	}
-	public void setEstimatedCost(double estimatedCost) {
-		this.estimatedCost = estimatedCost;
-	}
-	public double getRemainingBudget() {
-		return remainingBudget;
-	}
-	public void setRemainingBudget(double remainingBudget) {
-		this.remainingBudget = remainingBudget;
-	}
-	public String getItinerary() {
-		return itinerary;
-	}
-	public void setItinerary(String itinerary) {
-		this.itinerary = itinerary;
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
+	public void setRemainingBudget(double remainingBudget) {
+		// TODO Auto-generated method stub
+		
+	}
 }

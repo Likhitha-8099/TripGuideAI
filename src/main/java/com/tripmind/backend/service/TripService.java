@@ -1,6 +1,7 @@
 
 package com.tripmind.backend.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,6 +15,7 @@ import tools.jackson.databind.json.JsonMapper;
 import com.tripmind.backend.dto.AiItineraryResponse;
 import com.tripmind.backend.dto.MyTripResponse;
 import com.tripmind.backend.dto.TripRequest;
+import com.tripmind.backend.dto.TripResponse;
 import com.tripmind.backend.entity.Trip;
 import com.tripmind.backend.entity.Users;
 import com.tripmind.backend.repository.TripRepository;
@@ -22,164 +24,129 @@ import com.tripmind.backend.repository.UsersRepository;
 @Service
 public class TripService {
 
-    private final TripRepository tripRepo;
-    private final UsersRepository usersRepo;
-    private final AiService aiService;
-    private final BudgetValidator budgetValidator;
-    private final JsonMapper objectMapper;
+	private final TripRepository tripRepo;
+	private final UsersRepository usersRepo;
+	private final AiService aiService;
+	private final BudgetValidator budgetValidator;
+	private final JsonMapper objectMapper;
 
-    public TripService(
-            TripRepository tripRepository,
-            UsersRepository usersRepository,
-            AiService aiService,
-            BudgetValidator budgetValidator,
-            JsonMapper objectMapper) {
+	public TripService(TripRepository tripRepository, UsersRepository usersRepository, AiService aiService,
+			BudgetValidator budgetValidator, JsonMapper objectMapper) {
 
-        this.tripRepo = tripRepository;
-        this.usersRepo = usersRepository;
-        this.aiService = aiService;
-        this.budgetValidator = budgetValidator;
-        this.objectMapper = objectMapper;
-    }
+		this.tripRepo = tripRepository;
+		this.usersRepo = usersRepository;
+		this.aiService = aiService;
+		this.budgetValidator = budgetValidator;
+		this.objectMapper = objectMapper;
+	}
 
-    // CREATE TRIP + AI ITINERARY
-    public String generate(TripRequest tripRequest, Long userId) {
+	// CREATE TRIP + AI ITINERARY
+	public TripResponse generate(TripRequest tripRequest, Long userId) {
 
-        // 1. Find logged-in user
-        Users user = usersRepo.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "User not found"
-                ));
+		// 1. Find logged-in user
+		Users user = usersRepo.findById(userId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // 2. Generate structured itinerary using AI
-        AiItineraryResponse aiResponse =
-                aiService.generateTripResponse(tripRequest);
+		// 2. Generate structured itinerary using AI
+		AiItineraryResponse aiResponse = aiService.generateTripResponse(tripRequest);
 
-        // 3. Validate expenses and calculate actual totals
-        AiItineraryResponse validatedResponse =
-                budgetValidator.validateAndCalculate(
-                        aiResponse,
-                        tripRequest.getBudget()
-                );
+		// 3. Validate expenses and calculate actual totals
+		AiItineraryResponse validatedResponse = budgetValidator.validateAndCalculate(aiResponse,
+				tripRequest.getBudget());
 
-        // 4. Convert validated response into JSON
-        String itineraryJson;
+		// 4. Convert validated response into JSON
+		String itineraryJson;
 
-        try {
-            itineraryJson = objectMapper.writeValueAsString(
-                    validatedResponse
-            );
-        } catch (JacksonException e) {
-            throw new IllegalStateException(
-                    "Failed to convert itinerary into JSON",
-                    e
-            );
-        }
+		try {
+			itineraryJson = objectMapper.writeValueAsString(validatedResponse);
+		} catch (JacksonException e) {
+			throw new IllegalStateException("Failed to convert itinerary into JSON", e);
+		}
 
-        // 5. Create Trip entity
-        Trip trip = new Trip();
+		// 5. Create Trip entity
+		Trip trip = new Trip();
 
-        trip.setUser(user);
-        trip.setDestination(tripRequest.getDestination());
-        trip.setNumberOfDays(tripRequest.getNumberOfDays());
+		trip.setUser(user);
+		trip.setDestination(tripRequest.getDestination());
+		trip.setNumberOfDays(tripRequest.getNumberOfDays());
 
-        trip.setBudget(
-                java.math.BigDecimal.valueOf(tripRequest.getBudget())
-        );
+		trip.setBudget(BigDecimal.valueOf(tripRequest.getBudget()));
 
-        trip.setTravelStyle(tripRequest.getTravelStyle());
-        trip.setGeneratedItinerary(itineraryJson);
+		trip.setTravelStyle(tripRequest.getTravelStyle());
+		trip.setGeneratedItinerary(itineraryJson);
 
-        // 6. Save trip
-        Trip savedTrip = tripRepo.save(trip);
+		// 6. Save trip
+		Trip savedTrip = tripRepo.save(trip);
 
-        return "Your " + savedTrip.getDestination()
-                + " trip is being planned! Trip ID: "
-                + savedTrip.getId();
-    }
+		// 7. Return structured response
+		return new TripResponse(savedTrip.getId(), validatedResponse);
+	}
 
-    // GET ALL TRIPS OF LOGGED-IN USER
-    public List<MyTripResponse> getMyTrips(Long userId) {
+	// CONVERT DATABASE JSON INTO JAVA DTO
 
-        List<Trip> trips = tripRepo.findByUser_Id(userId);
+	private AiItineraryResponse convertToAiResponse(String json) {
 
-        return trips.stream()
-                .map(trip -> new MyTripResponse(
-                        trip.getId(),
-                        trip.getDestination(),
-                        trip.getNumberOfDays(),
-                        trip.getBudget(),
-                        trip.getTravelStyle(),
-                        trip.getGeneratedItinerary(),
-                        trip.getCreatedAt()
-                ))
-                .collect(Collectors.toList());
-    }
+		if (json == null || json.isBlank()) {
+			return null;
+		}
 
-    // GET SINGLE TRIP
-    public MyTripResponse getTripById(Long tripId, Long userId) {
+		try {
+			return objectMapper.readValue(json, AiItineraryResponse.class);
 
-        Trip trip = tripRepo.findByIdAndUser_Id(tripId, userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Trip not found"
-                ));
+		} catch (JacksonException e) {
+			// Handles old or invalid itinerary records
+			return null;
+		}
+	}
 
-        return new MyTripResponse(
-                trip.getId(),
-                trip.getDestination(),
-                trip.getNumberOfDays(),
-                trip.getBudget(),
-                trip.getTravelStyle(),
-                trip.getGeneratedItinerary(),
-                trip.getCreatedAt()
-        );
-    }
+	// GET ALL TRIPS OF LOGGED-IN USER
+	public List<MyTripResponse> getMyTrips(Long userId) {
 
-    // UPDATE TRIP
-    public MyTripResponse updateTrip(
-            Long tripId,
-            Long userId,
-            TripRequest request) {
+		List<Trip> trips = tripRepo.findByUser_Id(userId);
 
-        Trip trip = tripRepo.findByIdAndUser_Id(tripId, userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Trip not found"
-                ));
+		return trips.stream()
+				.map(trip -> new MyTripResponse(trip.getId(), trip.getDestination(), trip.getNumberOfDays(),
+						trip.getBudget(), trip.getTravelStyle(), convertToAiResponse(trip.getGeneratedItinerary()),
+						trip.getCreatedAt()))
+				.collect(Collectors.toList());
+	}
 
-        trip.setDestination(request.getDestination());
-        trip.setNumberOfDays(request.getNumberOfDays());
+	// GET SINGLE TRIP
+	public MyTripResponse getTripById(Long tripId, Long userId) {
 
-        trip.setBudget(
-                java.math.BigDecimal.valueOf(request.getBudget())
-        );
+		Trip trip = tripRepo.findByIdAndUser_Id(tripId, userId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found"));
 
-        trip.setTravelStyle(request.getTravelStyle());
+		return new MyTripResponse(trip.getId(), trip.getDestination(), trip.getNumberOfDays(), trip.getBudget(),
+				trip.getTravelStyle(), convertToAiResponse(trip.getGeneratedItinerary()), trip.getCreatedAt());
+	}
 
-        Trip updatedTrip = tripRepo.save(trip);
+	// UPDATE TRIP
+	public MyTripResponse updateTrip(Long tripId, Long userId, TripRequest request) {
 
-        return new MyTripResponse(
-                updatedTrip.getId(),
-                updatedTrip.getDestination(),
-                updatedTrip.getNumberOfDays(),
-                updatedTrip.getBudget(),
-                updatedTrip.getTravelStyle(),
-                updatedTrip.getGeneratedItinerary(),
-                updatedTrip.getCreatedAt()
-        );
-    }
+		Trip trip = tripRepo.findByIdAndUser_Id(tripId, userId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found"));
 
-    // DELETE TRIP
-    public void deleteTrip(Long tripId, Long userId) {
+		trip.setDestination(request.getDestination());
+		trip.setNumberOfDays(request.getNumberOfDays());
 
-        Trip trip = tripRepo.findByIdAndUser_Id(tripId, userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Trip not found"
-                ));
+		trip.setBudget(BigDecimal.valueOf(request.getBudget()));
 
-        tripRepo.delete(trip);
-    }
+		trip.setTravelStyle(request.getTravelStyle());
+
+		Trip updatedTrip = tripRepo.save(trip);
+
+		return new MyTripResponse(updatedTrip.getId(), updatedTrip.getDestination(), updatedTrip.getNumberOfDays(),
+				updatedTrip.getBudget(), updatedTrip.getTravelStyle(),
+				convertToAiResponse(updatedTrip.getGeneratedItinerary()), updatedTrip.getCreatedAt());
+	}
+
+	// DELETE TRIP
+	public void deleteTrip(Long tripId, Long userId) {
+
+		Trip trip = tripRepo.findByIdAndUser_Id(tripId, userId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found"));
+
+		tripRepo.delete(trip);
+	}
 }

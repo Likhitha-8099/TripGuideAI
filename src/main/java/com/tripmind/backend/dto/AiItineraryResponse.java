@@ -1,6 +1,8 @@
 
 package com.tripmind.backend.dto;
 
+import java.util.List;
+
 public class AiItineraryResponse {
 
     private String destination;
@@ -15,7 +17,7 @@ public class AiItineraryResponse {
 
     private double remainingBudget;
 
-    private String itinerary;
+    private List<DayItinerary> itinerary;
 
     public String getDestination() {
         return destination;
@@ -65,11 +67,11 @@ public class AiItineraryResponse {
         this.remainingBudget = remainingBudget;
     }
 
-    public String getItinerary() {
+    public List<DayItinerary> getItinerary() {
         return itinerary;
     }
 
-    public void setItinerary(String itinerary) {
+    public void setItinerary(List<DayItinerary> itinerary) {
         this.itinerary = itinerary;
     }
 }

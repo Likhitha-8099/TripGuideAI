@@ -11,7 +11,7 @@ public class MyTripResponse {
     private Long numberOfDays;
     private BigDecimal budget;
     private String travelStyle;
-    private String generatedItinerary;
+    private AiItineraryResponse generatedItinerary;
     private LocalDateTime createdAt;
 
     public MyTripResponse() {
@@ -23,7 +23,7 @@ public class MyTripResponse {
             Long numberOfDays,
             BigDecimal budget,
             String travelStyle,
-            String generatedItinerary,
+            AiItineraryResponse generatedItinerary,
             LocalDateTime createdAt) {
 
         this.id = id;
@@ -55,7 +55,7 @@ public class MyTripResponse {
         return travelStyle;
     }
 
-    public String getGeneratedItinerary() {
+    public AiItineraryResponse getGeneratedItinerary() {
         return generatedItinerary;
     }
 
